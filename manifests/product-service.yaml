@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: product-service:26
+          image: anhduc8702/halo-microservices-app-product-service:latest
           ports:
             - containerPort: 3002
 ---
