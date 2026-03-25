@@ -13,6 +13,18 @@ pipeline {
             }
         }
 
+        stage('Check Commit') {
+            steps {
+                script {
+                    def msg = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
+                    if (msg.startsWith('ci:')) {
+                        currentBuild.result = 'NOT_BUILT'
+                        error("Skipping CI commit: ${msg}")
+                    }
+                }
+            }
+        }
+
         stage('Build & Push Images') {
             parallel {
                 stage('user-service') {
