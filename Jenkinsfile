@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_REPO = 'anhduc8702/halo-microservices-app'
-        DOCKERHUB_CREDS = credentials('dockerhub-credentials')
+        DOCKERHUB_CREDS = credentials('dockerhub-creds')
     }
 
     stages {
