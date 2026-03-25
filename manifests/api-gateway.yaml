@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: api-gateway:22
+          image: api-gateway:23
           ports:
             - containerPort: 3000
 ---
