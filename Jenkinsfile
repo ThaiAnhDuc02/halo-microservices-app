@@ -13,17 +13,6 @@ pipeline {
             }
         }
 
-        stage('Check Commit') {
-            steps {
-                script {
-                    def msg = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
-                    if (msg.startsWith('ci:')) {
-                        currentBuild.result = 'NOT_BUILT'
-                        error("Skipping CI commit: ${msg}")
-                    }
-                }
-            }
-        }
 
         stage('Build & Push Images') {
             parallel {
@@ -68,19 +57,23 @@ pipeline {
                 withCredentials([string(credentialsId: 'github-manifest-token',
                                     variable: 'GH_TOKEN')]) {
                     sh '''
-                        sed -i "s|image: api-gateway:.*|image: api-gateway:$BUILD_NUMBER|g" manifests/api-gateway.yaml
-                        sed -i "s|image: user-service:.*|image: user-service:$BUILD_NUMBER|g" manifests/user-service.yaml
-                        sed -i "s|image: product-service:.*|image: product-service:$BUILD_NUMBER|g" manifests/product-service.yaml
+                        rm -rf manifest-repo
+                        git clone https://$GH_TOKEN@github.com/ThaiAnhDuc02/halo-microservices-app-manifest.git manifest-repo
 
+                        sed -i "s|image: ${DOCKERHUB_REPO}-api-gateway:.*|image: ${DOCKERHUB_REPO}-api-gateway:$BUILD_NUMBER|g" manifest-repo/api-gateway.yaml
+                        sed -i "s|image: ${DOCKERHUB_REPO}-user-service:.*|image: ${DOCKERHUB_REPO}-user-service:$BUILD_NUMBER|g" manifest-repo/user-service.yaml
+                        sed -i "s|image: ${DOCKERHUB_REPO}-product-service:.*|image: ${DOCKERHUB_REPO}-product-service:$BUILD_NUMBER|g" manifest-repo/product-service.yaml
+
+                        cd manifest-repo
                         git config user.email "jenkins@ci.local"
                         git config user.name  "Jenkins"
-                        git add manifests/
+                        git add .
 
                         if git diff --staged --quiet; then
                             echo "No changes to commit"
                         else
                             git commit -m "ci: update image tags to $BUILD_NUMBER"
-                            git push https://$GH_TOKEN@github.com/ThaiAnhDuc02/halo-microservices-app.git
+                            git push
                         fi
                     '''
                 }
