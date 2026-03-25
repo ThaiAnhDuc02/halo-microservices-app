@@ -51,16 +51,31 @@ pipeline {
             }
         }
 
-        stage('Update Manifests') {
+        stage('Update Manifest') {
             steps {
-                sh """
-                    sed -i 's|image: ${DOCKERHUB_REPO}-user-service:.*|image: ${DOCKERHUB_REPO}-user-service:${BUILD_NUMBER}|' manifests/user-service.yaml
-                    sed -i 's|image: ${DOCKERHUB_REPO}-product-service:.*|image: ${DOCKERHUB_REPO}-product-service:${BUILD_NUMBER}|' manifests/product-service.yaml
-                    sed -i 's|image: ${DOCKERHUB_REPO}-api-gateway:.*|image: ${DOCKERHUB_REPO}-api-gateway:${BUILD_NUMBER}|' manifests/api-gateway.yaml
-                """
+                withCredentials([string(credentialsId: 'github-manifest-token',
+                                    variable: 'GH_TOKEN')]) {
+                    sh '''
+                        # Update image tag trong manifest hiện tại
+                        sed -i "s|image: api-gateway:.*|image: api-gateway:$BUILD_NUMBER|g" manifests/api-gateway-deployment.yaml
+                        
+                        # Hoặc nếu có nhiều services
+                        sed -i "s|image:.*api-gateway:.*|image: api-gateway:$BUILD_NUMBER|g" manifests/api-gateway-deployment.yaml
+                        
+                        git config user.email "jenkins@ci.local"
+                        git config user.name  "Jenkins"
+                        git add manifests/
+                        
+                        if git diff --staged --quiet; then
+                            echo "No changes to commit"
+                        else
+                            git commit -m "ci: update api-gateway image to $BUILD_NUMBER"
+                            git push https://$GH_TOKEN@github.com/ThaiAnhDuc02/halo-microservices-app.git
+                        fi
+                    '''
+                }
             }
         }
-    }
 
     post {
         always {
