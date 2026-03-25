@@ -56,20 +56,18 @@ pipeline {
                 withCredentials([string(credentialsId: 'github-manifest-token',
                                     variable: 'GH_TOKEN')]) {
                     sh '''
-                        # Update image tag trong manifest hiện tại
-                        sed -i "s|image: api-gateway:.*|image: api-gateway:$BUILD_NUMBER|g" manifests/api-gateway-deployment.yaml
-                        
-                        # Hoặc nếu có nhiều services
-                        sed -i "s|image:.*api-gateway:.*|image: api-gateway:$BUILD_NUMBER|g" manifests/api-gateway-deployment.yaml
-                        
+                        sed -i "s|image: api-gateway:.*|image: api-gateway:$BUILD_NUMBER|g" manifests/api-gateway.yaml
+                        sed -i "s|image: user-service:.*|image: user-service:$BUILD_NUMBER|g" manifests/user-service.yaml
+                        sed -i "s|image: product-service:.*|image: product-service:$BUILD_NUMBER|g" manifests/product-service.yaml
+
                         git config user.email "jenkins@ci.local"
                         git config user.name  "Jenkins"
                         git add manifests/
-                        
+
                         if git diff --staged --quiet; then
                             echo "No changes to commit"
                         else
-                            git commit -m "ci: update api-gateway image to $BUILD_NUMBER"
+                            git commit -m "ci: update image tags to $BUILD_NUMBER"
                             git push https://$GH_TOKEN@github.com/ThaiAnhDuc02/halo-microservices-app.git
                         fi
                     '''
