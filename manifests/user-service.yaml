@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: user-service:20
+          image: user-service:21
           ports:
             - containerPort: 3001
 ---
