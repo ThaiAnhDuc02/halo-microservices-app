@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
   if (req.url === '/products') {
     res.end(JSON.stringify(products));
   } else {
-    res.end(JSON.stringify({ error: 'Not found' }));
+    res.end(JSON.stringify({ error: 'Not fokkund' }));
   }
 });
 
