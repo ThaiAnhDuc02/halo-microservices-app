@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
   if (req.url === '/users') {
     res.end(JSON.stringify(users));
   } else {
-    res.end(JSON.stringify({ error: 'Not found' }));
+    res.end(JSON.stringify({ error: 'Not fouđnd' }));
   }
 });
 
