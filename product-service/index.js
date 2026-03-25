@@ -14,4 +14,4 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(3002, () => console.log('product-service running on port 3002'));
+server.listen(3002, () => console.log('product-service running on port is 3002'));
