@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: product-service:17
+          image: product-service:18
           ports:
             - containerPort: 3002
 ---
