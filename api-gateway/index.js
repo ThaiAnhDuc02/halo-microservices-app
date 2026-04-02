@@ -52,6 +52,10 @@ const server = http.createServer(async (req, res) => {
       const data = await fetchJSON(`${PRODUCT_SERVICE}/products`);
       res.writeHead(200);
       res.end(JSON.stringify(data));
+    } else if (req.method === 'GET' && req.url === '/orders') {
+      const data = await fetchJSON(`${ORDER_SERVICE}/orders`);
+      res.writeHead(200);
+      res.end(JSON.stringify(data));
     } else if (req.method === 'POST' && req.url === '/orders') {
       let body = '';
       req.on('data', chunk => (body += chunk));
