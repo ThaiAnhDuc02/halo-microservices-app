@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Microservices Shop</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; padding: 24px; }
+    h1 { margin-bottom: 24px; color: #333; }
+    .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    h2 { margin-bottom: 12px; font-size: 1rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+    select, input[type=number] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; margin-bottom: 10px; }
+    button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; width: 100%; font-size: 1rem; }
+    button:hover { background: #4338ca; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+    .toast { display: none; margin-top: 14px; padding: 12px 16px; border-radius: 6px; font-size: 0.9rem; }
+    .toast.success { background: #d1fae5; color: #065f46; display: block; }
+    .toast.error { background: #fee2e2; color: #991b1b; display: block; }
+    .list { list-style: none; }
+    .list li { padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; color: #444; }
+  </style>
+</head>
+<body>
+  <h1>🛒 Microservices Shop</h1>
+
+  <div class="section">
+    <h2>Place an Order</h2>
+    <select id="userId">
+      <option value="">Loading users...</option>
+    </select>
+    <select id="productId">
+      <option value="">Loading products...</option>
+    </select>
+    <input type="number" id="quantity" value="1" min="1" placeholder="Quantity" />
+    <button id="orderBtn" onclick="placeOrder()">Place Order</button>
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <div class="section">
+    <h2>Users</h2>
+    <ul id="userList" class="list"><li>Loading...</li></ul>
+  </div>
+
+  <div class="section">
+    <h2>Products</h2>
+    <ul id="productList" class="list"><li>Loading...</li></ul>
+  </div>
+
+  <script>
+    const API = 'http://localhost:3000';
+
+    async function load() {
+      const [users, products] = await Promise.all([
+        fetch(`${API}/users`).then(r => r.json()),
+        fetch(`${API}/products`).then(r => r.json()),
+      ]);
+
+      document.getElementById('userList').innerHTML = users.map(u => `<li>${u.id} — ${u.name}</li>`).join('');
+      document.getElementById('productList').innerHTML = products.map(p => `<li>${p.id} — ${p.name} ($${p.price})</li>`).join('');
+
+      document.getElementById('userId').innerHTML = users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+      document.getElementById('productId').innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+
+    async function placeOrder() {
+      const btn = document.getElementById('orderBtn');
+      const toast = document.getElementById('toast');
+      toast.className = 'toast';
+      toast.textContent = '';
+
+      const userId = document.getElementById('userId').value;
+      const productId = document.getElementById('productId').value;
+      const quantity = parseInt(document.getElementById('quantity').value);
+
+      if (!userId || !productId || quantity < 1) {
+        toast.className = 'toast error';
+        toast.textContent = 'Please fill in all fields.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Placing order...';
+
+      try {
+        const res = await fetch(`${API}/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, productId, quantity }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          toast.className = 'toast success';
+          toast.textContent = `✅ ${data.message} (Order ID: ${data.orderId})`;
+        } else {
+          throw new Error(data.error || 'Unknown error');
+        }
+      } catch (err) {
+        toast.className = 'toast error';
+        toast.textContent = `❌ Failed: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Place Order';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
