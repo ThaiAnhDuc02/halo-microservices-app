@@ -1,14 +1,14 @@
 const http = require('http');
 
-const USER_SERVICE = 'http://user-service:3001';
+const USER_SERVICE    = 'http://user-service:3001';
 const PRODUCT_SERVICE = 'http://product-service:3002';
-const ORDER_SERVICE = 'http://order-service:3003';
+const ORDER_SERVICE   = 'http://order-service:3003';
 
 function fetchJSON(url) {
   return new Promise((resolve, reject) => {
     http.get(url, (res) => {
       let data = '';
-      res.on('data', (chunk) => (data += chunk));
+      res.on('data', chunk => (data += chunk));
       res.on('end', () => resolve(JSON.parse(data)));
     }).on('error', reject);
   });
@@ -23,7 +23,7 @@ function postJSON(url, body) {
     };
     const req = http.request(url, options, (res) => {
       let data = '';
-      res.on('data', (chunk) => (data += chunk));
+      res.on('data', chunk => (data += chunk));
       res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(data) }));
     });
     req.on('error', reject);
@@ -38,32 +38,47 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    return res.end();
-  }
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
   try {
     if (req.method === 'GET' && req.url === '/api/users') {
       const data = await fetchJSON(`${USER_SERVICE}/users`);
       res.writeHead(200);
       res.end(JSON.stringify(data));
+
     } else if (req.method === 'GET' && req.url === '/api/products') {
       const data = await fetchJSON(`${PRODUCT_SERVICE}/products`);
       res.writeHead(200);
       res.end(JSON.stringify(data));
+
     } else if (req.method === 'GET' && req.url === '/api/orders') {
       const data = await fetchJSON(`${ORDER_SERVICE}/orders`);
       res.writeHead(200);
       res.end(JSON.stringify(data));
+
     } else if (req.method === 'POST' && req.url === '/api/orders') {
       let body = '';
       req.on('data', chunk => (body += chunk));
       req.on('end', async () => {
-        const result = await postJSON(`${ORDER_SERVICE}/orders`, JSON.parse(body));
+        const order = JSON.parse(body);
+
+        // lookup product snapshot
+        try {
+          const products = await fetchJSON(`${PRODUCT_SERVICE}/products`);
+          const product = products.find(p => String(p.id) === String(order.productId));
+          if (product) {
+            order.productName  = product.name;
+            order.productPrice = product.price;
+            order.productBrand = product.brand || null;
+            order.productImage = product.image || null;
+          }
+        } catch (_) { /* snapshot optional */ }
+
+        const result = await postJSON(`${ORDER_SERVICE}/orders`, order);
         res.writeHead(result.status);
         res.end(JSON.stringify(result.body));
       });
+
     } else {
       res.writeHead(404);
       res.end(JSON.stringify({ error: 'Route not found' }));

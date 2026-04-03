@@ -1,6 +1,44 @@
 version: '3.8'
 
 services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on: [zookeeper]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      retries: 10
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: microservices
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: secret
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+
+  mongodb:
+    image: mongo:7.0
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      retries: 10
+
   user-service:
     build: ./user-service
     ports:
@@ -10,6 +48,67 @@ services:
     build: ./product-service
     ports:
       - "3002:3002"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017
+      DB_HOST: mysql
+      DB_USER: admin
+      DB_PASSWORD: secret
+      DB_NAME: microservices
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "3003:3003"
+    environment:
+      KAFKA_BROKER: kafka:9092
+      DB_HOST: mysql
+      DB_USER: admin
+      DB_PASSWORD: secret
+      DB_NAME: microservices
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  order-processor:
+    build: ./order-processor
+    environment:
+      KAFKA_BROKER: kafka:9092
+      DB_HOST: mysql
+      DB_USER: admin
+      DB_PASSWORD: secret
+      DB_NAME: microservices
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  data-collector:
+    build: ./data-collector
+    environment:
+      KAFKA_BROKER: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+
+  product-processor:
+    build: ./product-processor
+    environment:
+      KAFKA_BROKER: kafka:9092
+      MONGO_URI: mongodb://mongodb:27017
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
 
   api-gateway:
     build: ./api-gateway
@@ -18,3 +117,11 @@ services:
     depends_on:
       - user-service
       - product-service
+      - order-service
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-gateway
