@@ -19,11 +19,13 @@ pipeline {
                 stage('user-service') {
                     steps {
                         dir('user-service') {
-                            sh """
-                                docker build -t ${DOCKERHUB_REPO}-user-service:${BUILD_NUMBER} .
-                                echo ${DOCKERHUB_CREDS_PSW} | docker login -u ${DOCKERHUB_CREDS_USR} --password-stdin
-                                docker push ${DOCKERHUB_REPO}-user-service:${BUILD_NUMBER}
-                            """
+                            retry(3) {
+                                sh """
+                                    docker build -t ${DOCKERHUB_REPO}-user-service:${BUILD_NUMBER} .
+                                    echo ${DOCKERHUB_CREDS_PSW} | docker login -u ${DOCKERHUB_CREDS_USR} --password-stdin
+                                    docker push ${DOCKERHUB_REPO}-user-service:${BUILD_NUMBER}
+                                """
+                            }
                         }
                     }
                 }
