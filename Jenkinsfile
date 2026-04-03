@@ -82,6 +82,28 @@ pipeline {
                         }
                     }
                 }
+                stage('data-collector') {
+                    steps {
+                        dir('data-collector') {
+                            sh """
+                                docker build -t ${DOCKERHUB_REPO}-data-collector:${BUILD_NUMBER} .
+                                echo ${DOCKERHUB_CREDS_PSW} | docker login -u ${DOCKERHUB_CREDS_USR} --password-stdin
+                                docker push ${DOCKERHUB_REPO}-data-collector:${BUILD_NUMBER}
+                            """
+                        }
+                    }
+                }
+                stage('product-processor') {
+                    steps {
+                        dir('product-processor') {
+                            sh """
+                                docker build -t ${DOCKERHUB_REPO}-product-processor:${BUILD_NUMBER} .
+                                echo ${DOCKERHUB_CREDS_PSW} | docker login -u ${DOCKERHUB_CREDS_USR} --password-stdin
+                                docker push ${DOCKERHUB_REPO}-product-processor:${BUILD_NUMBER}
+                            """
+                        }
+                    }
+                }
             }
         }
 
@@ -99,6 +121,8 @@ pipeline {
                         sed -i "s|image: ${DOCKERHUB_REPO}-order-service:.*|image: ${DOCKERHUB_REPO}-order-service:$BUILD_NUMBER|g" manifest-repo/order-service.yaml
                         sed -i "s|image: ${DOCKERHUB_REPO}-order-processor:.*|image: ${DOCKERHUB_REPO}-order-processor:$BUILD_NUMBER|g" manifest-repo/order-processor.yaml
                         sed -i "s|image: ${DOCKERHUB_REPO}-frontend:.*|image: ${DOCKERHUB_REPO}-frontend:$BUILD_NUMBER|g" manifest-repo/frontend.yaml
+                        sed -i "s|image: ${DOCKERHUB_REPO}-data-collector:.*|image: ${DOCKERHUB_REPO}-data-collector:$BUILD_NUMBER|g" manifest-repo/data-collector.yaml
+                        sed -i "s|image: ${DOCKERHUB_REPO}-product-processor:.*|image: ${DOCKERHUB_REPO}-product-processor:$BUILD_NUMBER|g" manifest-repo/product-processor.yaml
 
                         cd manifest-repo
                         git config user.email "jenkins@ci.local"
