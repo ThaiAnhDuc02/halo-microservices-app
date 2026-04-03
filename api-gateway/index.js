@@ -44,19 +44,19 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    if (req.method === 'GET' && req.url === '/users') {
+    if (req.method === 'GET' && req.url === '/api/users') {
       const data = await fetchJSON(`${USER_SERVICE}/users`);
       res.writeHead(200);
       res.end(JSON.stringify(data));
-    } else if (req.method === 'GET' && req.url === '/products') {
+    } else if (req.method === 'GET' && req.url === '/api/products') {
       const data = await fetchJSON(`${PRODUCT_SERVICE}/products`);
       res.writeHead(200);
       res.end(JSON.stringify(data));
-    } else if (req.method === 'GET' && req.url === '/orders') {
+    } else if (req.method === 'GET' && req.url === '/api/orders') {
       const data = await fetchJSON(`${ORDER_SERVICE}/orders`);
       res.writeHead(200);
       res.end(JSON.stringify(data));
-    } else if (req.method === 'POST' && req.url === '/orders') {
+    } else if (req.method === 'POST' && req.url === '/api/orders') {
       let body = '';
       req.on('data', chunk => (body += chunk));
       req.on('end', async () => {
