@@ -18,28 +18,40 @@ async function run() {
   await producer.connect();
   console.log('data-collector connected to Kafka');
 
-  const products = await fetchProducts();
-  console.log(`Fetched ${products.length} products from dummyjson`);
+  const INTERVAL_MS = parseInt(process.env.INTERVAL_MS || '300000'); // Mặc định 5 phút
 
-  const messages = products.map(p => ({
-    key: String(p.id),
-    value: JSON.stringify({
-      id: String(p.id),
-      name: p.title,
-      price: p.price,
-      brand: p.brand || null,
-      category: p.category,
-      image: p.thumbnail,
-      rating: p.rating,
-      stock: p.stock,
-    }),
-  }));
+  while (true) {
+    try {
+      const products = await fetchProducts();
+      console.log(`Fetched ${products.length} products from dummyjson`);
 
-  await producer.send({ topic: 'external-products', messages });
-  console.log(`Produced ${messages.length} messages to topic: external-products`);
+      const messages = products.map(p => ({
+        key: String(p.id),
+        value: JSON.stringify({
+          id: String(p.id),
+          name: p.title,
+          price: p.price,
+          brand: p.brand || null,
+          category: p.category,
+          image: p.thumbnail,
+          rating: p.rating,
+          stock: p.stock,
+        }),
+      }));
 
-  await producer.disconnect();
-  process.exit(0);
+      await producer.send({ topic: 'external-products', messages });
+      console.log(`Produced ${messages.length} messages to topic: external-products`);
+      console.log(`Waiting ${INTERVAL_MS / 1000} seconds before next run...`);
+
+      await new Promise(resolve => setTimeout(resolve, INTERVAL_MS));
+    } catch (err) {
+      console.error('Error in data collection cycle:', err);
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Đợi 10s nếu lỗi
+    }
+  }
 }
 
-run().catch(err => { console.error(err); process.exit(1); });
+run().catch(err => { 
+  console.error('Fatal error:', err); 
+  process.exit(1); 
+});
